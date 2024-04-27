@@ -98,14 +98,14 @@ class ExpandScalars(base.Wrapper):
     self._obs_expanded = []
     self._obs_space = {}
     for key, space in self.env.obs_space.items():
-      if space.shape == () and key != 'reward' and not space.discrete:
+      if space.shape == () and key != 'reward' and not space.discrete and space.expand:
         space = spacelib.Space(space.dtype, (1,), space.low, space.high)
         self._obs_expanded.append(key)
       self._obs_space[key] = space
     self._act_expanded = []
     self._act_space = {}
     for key, space in self.env.act_space.items():
-      if space.shape == () and not space.discrete:
+      if space.shape == () and not space.discrete and space.expand:
         space = spacelib.Space(space.dtype, (1,), space.low, space.high)
         self._act_expanded.append(key)
       self._act_space[key] = space

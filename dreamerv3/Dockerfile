@@ -7,8 +7,8 @@
 #
 # 2) Start training:
 #
-#   docker build -f Dockerfile -t aluno_bryan-sldp_dreamerv3:latest .
-#   docker run -it --rm --gpus '"device=0"' --cpus=16.0 --memory=16g -v /raid/bryan/sliding-puzzle-env:/sldp -v /raid/bryan/dreamerv3/experiments:/ap/experiments -v /raid/bryan/dreamerv3/logdir:/ap/logdir aluno_bryan-sldp_dreamerv3
+#   docker build -f dreamerv3/Dockerfile -t aluno_bryan-sldp_dreamerv3:latest .
+#   docker run -it --rm --gpus '"device=0"' --cpus=16.0 --memory=16g -v /raid/bryan/sliding-puzzle-env:/sldp -v /raid/bryan/dreamerv3/experiments:/app/experiments -v /raid/bryan/dreamerv3/logdir:/app/logdir aluno_bryan-sldp_dreamerv3
 #
 # 3) See results:
 #
@@ -24,7 +24,7 @@ ENV PIP_NO_CACHE_DIR 1
 ENV PIP_ROOT_USER_ACTION=ignore
 RUN apt-get update && apt-get install -y \
   ffmpeg git vim curl software-properties-common \
-  libglew-dev x11-xserver-utils xvfb \
+  libglew-dev x11-xserver-utils xvfb bc \
   && apt-get clean
 
 # Workdir

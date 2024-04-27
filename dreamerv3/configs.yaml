@@ -84,6 +84,7 @@ defaults:
     dmc: {size: [64, 64], repeat: 2, image: True, camera: -1}
     procgen: {size: [64, 64]}
     loconav: {size: [64, 64], repeat: 2, camera: -1}
+    sldp: {w: 2, image_folder: single}
 
   # Agent
   report: True
@@ -175,6 +176,24 @@ size400m: &size400m
   dyn.rssm: {deter: 12288, hidden: 1536, classes: 96}
   .*\.depth: 96
   .*\.units: 1536
+
+sldp: &sldp
+  task: sldp_onehot
+  env.sldp.w: 3
+  wrapper: {length: 1000}
+  enc.spaces: 'observation'
+  dec.spaces: 'observation'
+  filter: 'length|fps|ratio|train/.*_loss$|train/rand/.*/mean|.*success.*'
+  run:
+    train_ratio: 256
+    steps: 1e6
+    log_keys_max: '(log_success)'
+
+sldp_image:
+  <<: *sldp
+  task: sldp_image
+  enc.spaces: 'image'
+  dec.spaces: 'image'
 
 minecraft:
   task: minecraft_diamond

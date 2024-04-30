@@ -6,3 +6,5 @@ jaxlib
 msgpack
 optax==0.1.9
 tensorflow_probability
+torch
+torchvision

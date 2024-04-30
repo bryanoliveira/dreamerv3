@@ -7,6 +7,11 @@ from tensorflow_probability.substrates import jax as tfp
 from . import jaxutils
 from . import ninjax as nj
 
+import torch
+from torch import nn
+from torchvision import transforms
+
+
 f32 = jnp.float32
 tfd = tfp.distributions
 sg = lambda x: jax.tree_util.tree_map(jax.lax.stop_gradient, x)
@@ -233,6 +238,10 @@ class SimpleEncoder(nj.Module):
   debug_outer: bool = False
   minres: int = 4
 
+  subencoder: str = 'conv'
+  dino_variant: str = 'dinov2_vits14'
+  dino_image_size: int = 84
+
   def __init__(self, spaces, **kw):
     assert all(len(s.shape) <= 3 for s in spaces.values()), spaces
     self.veckeys = [k for k, s in spaces.items() if len(s.shape) <= 2]
@@ -241,6 +250,8 @@ class SimpleEncoder(nj.Module):
     self.imginp = Input(self.imgkeys, featdims=3)
     self.depths = tuple(self.depth * mult for mult in self.mults)
     self.kw = kw
+    if self.subencoder == 'dino':
+      self.dino = DINOSubEncoder(self.dino_variant, self.dino_image_size)
 
   def __call__(self, data, bdims=2):
     kw = dict(**self.kw, norm=self.norm, act=self.act)
@@ -259,11 +270,20 @@ class SimpleEncoder(nj.Module):
       print('ENC')
       x = self.imginp(data, bdims, jaxutils.COMPUTE_DTYPE) - 0.5
       x = x.reshape((-1, *x.shape[bdims:]))
-      for i, depth in enumerate(self.depths):
-        stride = 1 if self.debug_outer and i == 0 else 2
-        x = self.get(f'conv{i}', Conv2D, depth, self.kernel, stride, **kw)(x)
-      assert x.shape[-3] == x.shape[-2] == self.minres, x.shape
-      x = x.reshape((x.shape[0], -1))
+
+      if self.subencoder == 'dino':
+        x = jax.pure_callback(
+          self.dino,
+          jax.ShapeDtypeStruct((x.shape[0], self.dino.out_size), jaxutils.COMPUTE_DTYPE),
+          x
+        )
+        x = self.get(f'proj', Linear, self.depths[-1], **kw)(x)
+      else:
+        for i, depth in enumerate(self.depths):
+          stride = 1 if self.debug_outer and i == 0 else 2
+          x = self.get(f'conv{i}', Conv2D, depth, self.kernel, stride, **kw)(x)
+        assert x.shape[-3] == x.shape[-2] == self.minres, x.shape
+        x = x.reshape((x.shape[0], -1))
       print(x.shape, 'out')
       outs.append(x)
 
@@ -271,6 +291,37 @@ class SimpleEncoder(nj.Module):
     x = x.reshape((*data['is_first'].shape, *x.shape[1:]))
     return x
 
+
+class DINOSubEncoder():
+  def __init__(self, variant='dinov2_vits14', image_size=84):  
+    dino = torch.hub.load("facebookresearch/dinov2", variant)
+    for p in dino.parameters():
+        p.requires_grad_(False)
+
+    self.encoder = nn.Sequential(
+      transforms.Resize(
+          (image_size, image_size),
+          interpolation=transforms.InterpolationMode.BICUBIC,
+          antialias=True,
+      ),
+      # ImageNet statistics
+      transforms.Normalize(
+          mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+      ),
+      dino,
+    )
+    self.encoder.cuda()
+    self.encoder.eval()
+    self.out_size = dino.embed_dim
+  
+  def __call__(self, data, bdims=2):
+    with torch.no_grad():
+      x = torch.from_numpy(np.asarray(data, dtype=np.float32)).cuda()
+      x = x.permute(0, 3, 1, 2)
+      x = self.encoder(x)
+      x = x.cpu().numpy()
+      x = jaxutils.cast_to_compute(x)
+      return x
 
 class SimpleDecoder(nj.Module):
 

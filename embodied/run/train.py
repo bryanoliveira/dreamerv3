@@ -99,6 +99,8 @@ def train(make_agent, make_replay, make_env, make_logger, args):
   checkpoint.load_or_save()
   should_save(step)  # Register that we just saved.
 
+  agent.apply_stop_gradients()
+
   print('Start training loop')
   policy = lambda *args: agent.policy(
       *args, mode='explore' if should_expl(step) else 'train')

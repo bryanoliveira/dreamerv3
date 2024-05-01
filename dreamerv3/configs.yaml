@@ -60,6 +60,7 @@ defaults:
     log_video_fps: 20
     log_video_streams: 4
     log_episode_timeout: 60
+    load_keys: '.*' # 'agent/enc/.*'
     from_checkpoint: ''
     actor_addr: 'tcp://localhost:{auto}'
     replay_addr: 'tcp://localhost:{auto}'

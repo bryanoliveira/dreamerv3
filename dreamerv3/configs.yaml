@@ -61,6 +61,7 @@ defaults:
     log_video_streams: 4
     log_episode_timeout: 60
     load_keys: '.*' # 'agent/enc/.*'
+    disable_grad_keys: '^$'
     from_checkpoint: ''
     actor_addr: 'tcp://localhost:{auto}'
     replay_addr: 'tcp://localhost:{auto}'

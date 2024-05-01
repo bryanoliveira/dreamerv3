@@ -251,6 +251,19 @@ class JAXAgent(embodied.Agent):
             {k: self.params[k].copy() for k in self.policy_keys},
             self.policy_mirrored)
 
+  def _apply_stop_gradients(self, params):
+    disable_grad_pattern = re.compile(self.config.run.disable_grad_keys)
+    params = jax.tree_map(
+        lambda x, k: x.at[...].set(jax.lax.stop_gradient(x)) if disable_grad_pattern.match(k) else x,
+        params,
+        jax.tree_util.tree_flatten(params)[1]
+    )
+    return params
+
+  def apply_stop_gradients(self):
+    self.params = self._apply_stop_gradients(self.params)
+    self.policy_params = self._apply_stop_gradients(self.policy_params)
+
   def _setup(self):
     try:
       import tensorflow as tf

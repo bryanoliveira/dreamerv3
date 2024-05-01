@@ -240,6 +240,9 @@ class JAXAgent(embodied.Agent):
   def load(self, state):
     with self.train_lock:
       with self.policy_lock:
+        load_pattern = re.compile(self.config.run.load_keys)
+        state = {k: v if k in load_pattern.match(k) else self.params[k].copy() for k, v in state.items()}
+
         chex.assert_trees_all_equal_shapes(self.params, state)
         jax.tree.map(lambda x: x.delete(), self.params)
         jax.tree.map(lambda x: x.delete(), self.policy_params)

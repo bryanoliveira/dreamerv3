@@ -253,11 +253,7 @@ class JAXAgent(embodied.Agent):
 
   def _apply_stop_gradients(self, params):
     disable_grad_pattern = re.compile(self.config.run.disable_grad_keys)
-    params = jax.tree_map(
-        lambda x, k: x.at[...].set(jax.lax.stop_gradient(x)) if disable_grad_pattern.match(k) else x,
-        params,
-        jax.tree_util.tree_flatten(params)[1]
-    )
+    params = {k: jax.lax.stop_gradient(v) if disable_grad_pattern.match(k) else v for k, v in params.items()}
     return params
 
   def apply_stop_gradients(self):

@@ -75,4 +75,3 @@ RUN chown 1000:root . && chmod 775 .
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bash", "experiments/daemon.sh"]
-

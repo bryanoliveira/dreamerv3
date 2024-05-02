@@ -240,6 +240,9 @@ class JAXAgent(embodied.Agent):
   def load(self, state):
     with self.train_lock:
       with self.policy_lock:
+        load_pattern = re.compile(self.config.run.load_keys)
+        state = {k: v if k in load_pattern.match(k) else self.params[k].copy() for k, v in state.items()}
+
         chex.assert_trees_all_equal_shapes(self.params, state)
         jax.tree.map(lambda x: x.delete(), self.params)
         jax.tree.map(lambda x: x.delete(), self.policy_params)
@@ -247,6 +250,15 @@ class JAXAgent(embodied.Agent):
         self.policy_params = jax.device_put(
             {k: self.params[k].copy() for k in self.policy_keys},
             self.policy_mirrored)
+
+  def _apply_stop_gradients(self, params):
+    disable_grad_pattern = re.compile(self.config.run.disable_grad_keys)
+    params = {k: jax.lax.stop_gradient(v) if disable_grad_pattern.match(k) else v for k, v in params.items()}
+    return params
+
+  def apply_stop_gradients(self):
+    self.params = self._apply_stop_gradients(self.params)
+    self.policy_params = self._apply_stop_gradients(self.policy_params)
 
   def _setup(self):
     try:

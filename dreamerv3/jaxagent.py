@@ -245,6 +245,7 @@ class JAXAgent(embodied.Agent):
           param_key = path[0].key
           if load_pattern.search(param_key):
             original_param.delete()
+            print(f'Loading {param_key}')
             return updated_param
           else:
             return original_param

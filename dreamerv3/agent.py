@@ -189,7 +189,7 @@ class Agent(nj.Module):
           data['is_first'][:, :1] & keep, data['is_first'][:, 1:]], 1)
 
     mets, (out, carry, metrics) = self.opt(
-        self.modules, self.loss, data, carry, has_aux=True)
+        self.modules, self.loss, data, carry, has_aux=True, disable_grad_keys=self.config.run.disable_grad_keys)
     metrics.update(mets)
     self.updater()
     outs = {}

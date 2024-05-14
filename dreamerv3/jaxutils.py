@@ -464,7 +464,7 @@ class Optimizer(nj.Module):
       self.good_steps = nj.Variable(jnp.array, 0, i32, name='good_steps')
     self.once = True
 
-  def __call__(self, modules, lossfn, *args, has_aux=False, **kwargs):
+  def __call__(self, modules, lossfn, *args, has_aux=False, disable_grad_keys="^$", **kwargs):
     def wrapped(*args, **kwargs):
       outs = lossfn(*args, **kwargs)
       loss, aux = outs if has_aux else (outs, None)
@@ -522,6 +522,10 @@ class Optimizer(nj.Module):
     else:
       raise NotImplementedError(self.schedule)
     updates = treemap(lambda x: x * scale, updates)
+
+    updates = jax.tree_util.tree_map_with_path(
+        lambda path, x: x*0 if re.search(disable_grad_keys, path[0].key) else x,
+        updates)
 
     nj.context().update(optax.apply_updates(params, updates))
     grad_norm = optax.global_norm(grads)

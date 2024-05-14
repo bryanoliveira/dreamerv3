@@ -97,7 +97,7 @@ def train(make_agent, make_replay, make_env, make_logger, args):
   checkpoint.replay = replay
   if args.from_checkpoint:
     checkpoint.load(args.from_checkpoint)
-  checkpoint.load_or_save()
+  checkpoint.load_or_save(load_skip_keys=args.load_skip_keys)
   should_save(step)  # Register that we just saved.
 
   print('Start training loop')

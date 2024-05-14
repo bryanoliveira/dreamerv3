@@ -527,6 +527,12 @@ class Optimizer(nj.Module):
         lambda path, x: x*0 if re.search(disable_grad_keys, path[0].key) else x,
         updates)
 
+    def update_stats(path, x):
+      metrics[f'param_update_{path[0].key}_mean'] = jnp.mean(x)
+      metrics[f'param_update_{path[0].key}_std'] = jnp.std(x)
+      return x
+    updates = jax.tree_util.tree_map_with_path(update_stats, updates)
+
     nj.context().update(optax.apply_updates(params, updates))
     grad_norm = optax.global_norm(grads)
     update_norm = optax.global_norm(updates)

@@ -495,6 +495,10 @@ class Optimizer(nj.Module):
       for prefix, count in sorted(subcounts.items(), key=lambda x: -x[1]):
         print(f'{count:>14,} {prefix}')
 
+      frozen_params = [k for k in params.keys() if re.search(disable_grad_keys, k)]
+      if len(frozen_params) > 0:
+        print(f'Frozen parameters with regex "{disable_grad_keys}": {frozen_params}')
+
     if parallel():
       grads = treemap(lambda x: jax.lax.pmean(x, 'i'), grads)
     if self.scaling:

@@ -43,7 +43,7 @@ RUN pip install --upgrade pip setuptools
 # RUN sh install-minecraft.sh
 # COPY embodied/scripts/install-dmlab.sh .
 # RUN sh install-dmlab.sh
-RUN pip install ale_py<0.9 autorom[accept-rom-license]
+RUN pip install "ale_py<0.9" autorom[accept-rom-license]
 # RUN pip install procgen_mirror
 # RUN pip install crafter
 # RUN pip install dm_control

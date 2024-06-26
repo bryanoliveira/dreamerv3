@@ -19,8 +19,8 @@
 FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/San_Francisco
-ENV PYTHONUNBUFFERED 1
-ENV PIP_NO_CACHE_DIR 1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 ENV PIP_ROOT_USER_ACTION=ignore
 RUN apt-get update && apt-get install -y \
   ffmpeg git vim curl software-properties-common \
@@ -49,13 +49,13 @@ RUN pip install "ale_py<0.9" autorom[accept-rom-license]
 # RUN pip install dm_control
 # RUN pip install memory_maze
 # ENV MUJOCO_GL egl
-ENV NUMBA_CACHE_DIR /tmp
+ENV NUMBA_CACHE_DIR=/tmp
 
 # Agent
 COPY dreamerv3/requirements.txt agent-requirements.txt
 RUN pip install -r agent-requirements.txt \
   -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-ENV XLA_PYTHON_CLIENT_MEM_FRACTION 0.8
+ENV XLA_PYTHON_CLIENT_MEM_FRACTION=0.8
 
 # Embodied
 COPY embodied/requirements.txt embodied-requirements.txt

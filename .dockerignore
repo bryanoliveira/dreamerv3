@@ -1,4 +1,4 @@
-logdir/
+logdir*
 scores/
 
 *.py[cod]

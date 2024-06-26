@@ -464,7 +464,7 @@ class Optimizer(nj.Module):
       self.good_steps = nj.Variable(jnp.array, 0, i32, name='good_steps')
     self.once = True
 
-  def __call__(self, modules, lossfn, *args, has_aux=False, **kwargs):
+  def __call__(self, modules, lossfn, *args, has_aux=False, disable_grad_keys="^$", **kwargs):
     def wrapped(*args, **kwargs):
       outs = lossfn(*args, **kwargs)
       loss, aux = outs if has_aux else (outs, None)
@@ -495,6 +495,10 @@ class Optimizer(nj.Module):
       for prefix, count in sorted(subcounts.items(), key=lambda x: -x[1]):
         print(f'{count:>14,} {prefix}')
 
+      if disable_grad_keys != "^$":
+        frozen_params = [k for k in params.keys() if re.search(disable_grad_keys, k)]
+        print(f'Frozen parameters with regex "{disable_grad_keys}": {frozen_params}')
+
     if parallel():
       grads = treemap(lambda x: jax.lax.pmean(x, 'i'), grads)
     if self.scaling:
@@ -505,7 +509,7 @@ class Optimizer(nj.Module):
     self.put('state', optstate)
 
     if self.details:
-      metrics.update(self._detailed_stats(optstate, params, updates))
+      metrics.update(self._detailed_stats(optstate, params, updates, grads))
 
     scale = 1
     step = self.step.read().astype(f32)
@@ -522,6 +526,17 @@ class Optimizer(nj.Module):
     else:
       raise NotImplementedError(self.schedule)
     updates = treemap(lambda x: x * scale, updates)
+
+    if disable_grad_keys != "^$":
+      updates = jax.tree_util.tree_map_with_path(
+          lambda path, x: x*0 if re.search(disable_grad_keys, path[0].key) else x,
+        updates)
+
+      def update_stats(path, x):
+        metrics[f'param_update_{path[0].key}_mean'] = jnp.mean(x)
+        metrics[f'param_update_{path[0].key}_std'] = jnp.std(x)
+        return x
+      updates = jax.tree_util.tree_map_with_path(update_stats, updates)
 
     nj.context().update(optax.apply_updates(params, updates))
     grad_norm = optax.global_norm(grads)
@@ -562,18 +577,16 @@ class Optimizer(nj.Module):
         1e-4, 1e5))
     return finite
 
-  def _detailed_stats(self, optstate, params, updates):
+  def _detailed_stats(self, optstate, params, updates, grads):
     groups = {
         'all': r'.*',
-        'enc': r'/enc/.*/kernel$',
-        'dec': r'/dec/.*/kernel$',
-        'rssm': r'/rssm/.*/kernel$',
-        'cont': r'/cont/.*/kernel$',
-        'rew': r'/rew/.*/kernel$',
-        'actor': r'/actor/.*/kernel$',
-        'critic': r'/critic/.*/kernel$',
-        'gru': r'/gru/kernel$',
-        'bias': r'/bias$',
+        'enc': r'/enc/.*',
+        'dec': r'/dec/.*',
+        'dyn': r'/dyn/.*',
+        'con': r'/con/.*',
+        'rew': r'/rew/.*',
+        'actor': r'/actor/.*',
+        'critic': r'/critic/.*',
         'out': r'/out/kernel$',
         'repr': r'/repr_logit/kernel$',
         'prior': r'/prior_logit/kernel$',
@@ -590,15 +603,18 @@ class Optimizer(nj.Module):
       keys = [k for k in params if re.search(pattern, k)]
       ps = [params[k] for k in keys]
       us = [updates[k] for k in keys]
+      gs = [grads[k] for k in keys]
       if not ps:
         continue
       metrics.update({f'{k}/{name}': v for k, v in dict(
+          param_count=jnp.array(np.sum([np.prod(x.shape) for x in ps])),
           param_abs_max=jnp.stack([jnp.abs(x).max() for x in ps]).max(),
           param_abs_mean=jnp.stack([jnp.abs(x).mean() for x in ps]).mean(),
           param_norm=optax.global_norm(ps),
           update_abs_max=jnp.stack([jnp.abs(x).max() for x in us]).max(),
           update_abs_mean=jnp.stack([jnp.abs(x).mean() for x in us]).mean(),
           update_norm=optax.global_norm(us),
+          grad_norm=optax.global_norm(gs),
       ).items()})
       if stddev is not None:
         sc = [stddev[k] for k in keys]
@@ -611,7 +627,7 @@ class Optimizer(nj.Module):
             prop_max=jnp.stack([x.max() for x in pr]).max(),
             prop_min=jnp.stack([x.min() for x in pr]).min(),
             prop_mean=jnp.stack([x.mean() for x in pr]).mean(),
-      ).items()})
+        ).items()})
     return metrics
 
 

@@ -16,7 +16,7 @@
 #
 
 # System
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/San_Francisco
 ENV PYTHONUNBUFFERED 1
@@ -43,7 +43,7 @@ RUN pip install --upgrade pip setuptools
 # RUN sh install-minecraft.sh
 # COPY embodied/scripts/install-dmlab.sh .
 # RUN sh install-dmlab.sh
-# RUN pip install ale_py autorom[accept-rom-license]
+RUN pip install "ale_py<0.9" autorom[accept-rom-license]
 # RUN pip install procgen_mirror
 # RUN pip install crafter
 # RUN pip install dm_control

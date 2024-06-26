@@ -1,5 +1,6 @@
 import concurrent.futures
 import pickle
+import re
 import time
 
 from . import path
@@ -77,7 +78,7 @@ class Checkpoint:
     print('Wrote checkpoint.')
 
   @timer.section('checkpoint_load')
-  def load(self, filename=None, keys=None):
+  def load(self, filename=None, keys=None, load_skip_keys="^$"):
     assert self._filename or filename
     self._promise and self._promise.result()  # Wait for last save.
     filename = path.Path(filename or self._filename)
@@ -85,7 +86,8 @@ class Checkpoint:
     data = pickle.loads(filename.read('rb'))
     keys = tuple(data.keys() if keys is None else keys)
     for key in keys:
-      if key.startswith('_'):
+      if key.startswith('_') or re.search(re.compile(load_skip_keys), key):
+        print(f"Skipping loading '{key}' from checkpoint.")
         continue
       try:
         self._values[key].load(data[key])
@@ -95,8 +97,8 @@ class Checkpoint:
     age = time.time() - data['_timestamp']
     printing.print_(f'Loaded checkpoint from {age:.0f} seconds ago.')
 
-  def load_or_save(self):
+  def load_or_save(self, **kwargs):
     if self.exists():
-      self.load()
+      self.load(**kwargs)
     else:
       self.save()

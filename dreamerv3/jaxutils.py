@@ -495,8 +495,8 @@ class Optimizer(nj.Module):
       for prefix, count in sorted(subcounts.items(), key=lambda x: -x[1]):
         print(f'{count:>14,} {prefix}')
 
-      frozen_params = [k for k in params.keys() if re.search(disable_grad_keys, k)]
-      if len(frozen_params) > 0:
+      if disable_grad_keys != "^$":
+        frozen_params = [k for k in params.keys() if re.search(disable_grad_keys, k)]
         print(f'Frozen parameters with regex "{disable_grad_keys}": {frozen_params}')
 
     if parallel():
@@ -527,15 +527,16 @@ class Optimizer(nj.Module):
       raise NotImplementedError(self.schedule)
     updates = treemap(lambda x: x * scale, updates)
 
-    updates = jax.tree_util.tree_map_with_path(
-        lambda path, x: x*0 if re.search(disable_grad_keys, path[0].key) else x,
+    if disable_grad_keys != "^$":
+      updates = jax.tree_util.tree_map_with_path(
+          lambda path, x: x*0 if re.search(disable_grad_keys, path[0].key) else x,
         updates)
 
-    def update_stats(path, x):
-      metrics[f'param_update_{path[0].key}_mean'] = jnp.mean(x)
-      metrics[f'param_update_{path[0].key}_std'] = jnp.std(x)
-      return x
-    updates = jax.tree_util.tree_map_with_path(update_stats, updates)
+      def update_stats(path, x):
+        metrics[f'param_update_{path[0].key}_mean'] = jnp.mean(x)
+        metrics[f'param_update_{path[0].key}_std'] = jnp.std(x)
+        return x
+      updates = jax.tree_util.tree_map_with_path(update_stats, updates)
 
     nj.context().update(optax.apply_updates(params, updates))
     grad_norm = optax.global_norm(grads)

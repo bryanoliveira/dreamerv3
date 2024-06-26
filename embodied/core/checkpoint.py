@@ -78,7 +78,7 @@ class Checkpoint:
     print('Wrote checkpoint.')
 
   @timer.section('checkpoint_load')
-  def load(self, filename=None, keys=None, load_skip_keys=".*"):
+  def load(self, filename=None, keys=None, load_skip_keys="^$"):
     assert self._filename or filename
     self._promise and self._promise.result()  # Wait for last save.
     filename = path.Path(filename or self._filename)

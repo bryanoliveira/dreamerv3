@@ -246,24 +246,27 @@ class JAXAgent(embodied.Agent):
   def load(self, state):
     with self.train_lock:
       with self.policy_lock:
-        load_pattern = re.compile(self.config.run.load_keys)
-        loaded_keys = [k for k in state.keys() if load_pattern.search(k)]
-        print(f'Loading keys: {loaded_keys}')
+        if self.config.run.load_keys != ".*":
+          load_pattern = re.compile(self.config.run.load_keys)
+          loaded_keys = [k for k in state.keys() if load_pattern.search(k)]
+          print(f'Selectively loading keys: {loaded_keys}')
 
-        def load_matching_keys(path, original_param, updated_param):
-          param_key = path[0].key
-          if load_pattern.search(param_key):
-            original_param.delete()
-            print(f'Loading {param_key}')
-            return updated_param
-          else:
-            return original_param
-        
-        state = jax.tree_util.tree_map_with_path(
-          load_matching_keys,
-          self.params,
-          state
-        )
+          def load_matching_keys(path, original_param, updated_param):
+            param_key = path[0].key
+            if load_pattern.search(param_key):
+              original_param.delete()
+              print(f'Loading {param_key}')
+              return updated_param
+            else:
+              return original_param
+          
+          state = jax.tree_util.tree_map_with_path(
+            load_matching_keys,
+            self.params,
+            state
+          )
+        else:
+          jax.tree.map(lambda x: x.delete(), self.params)
 
         chex.assert_trees_all_equal_shapes(self.params, state)
         jax.tree.map(lambda x: x.delete(), self.policy_params)

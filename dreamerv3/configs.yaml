@@ -183,11 +183,11 @@ sldp: &sldp
   <<: *size50m
   task: sldp_onehot
   (enc|dec).spaces: 'observation'
-  filter: 'length|fps|ratio|train/.*_loss$|train/rand/.*/mean|.*success.*'
+  wrapper.length: 1000
   run:
-    train_ratio: 256
+    # train_ratio: 256
     steps: 1000000
-    log_keys_max: '(log_success)'
+    log_keys_max: '^log_success$'
   jax.prealloc: False
 
 sldp_image:

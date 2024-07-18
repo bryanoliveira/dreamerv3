@@ -220,6 +220,8 @@ def make_env(config, index, **overrides):
   kwargs.update(overrides)
   if kwargs.pop('use_seed', False):
     kwargs['seed'] = hash((config.seed, index)) % (2 ** 32 - 1)
+    if suite == 'sldp':
+      kwargs['image_pool_seed'] = config.seed
   if kwargs.pop('use_logdir', False):
     kwargs['logdir'] = embodied.Path(config.logdir) / f'env{index}'
   env = ctor(task, **kwargs)

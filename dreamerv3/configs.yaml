@@ -49,6 +49,7 @@ defaults:
     eval_every: 180
     eval_initial: True
     eval_eps: 1
+    early_stop_patience: 100
     train_ratio: 32.0
     train_fill: 0
     eval_fill: 0
@@ -87,7 +88,7 @@ defaults:
     dmc: {size: [64, 64], repeat: 2, image: True, camera: -1}
     procgen: {size: [64, 64]}
     loconav: {size: [64, 64], repeat: 2, camera: -1}
-    sldp: {w: 2, image_folder: diffusiondb, image_pool_size: 1, image_size: [80, 80]}
+    sldp: {w: 2, image_folder: diffusiondb, image_pool_size: 1, image_size: [80, 80], use_seed: True}
 
   # Agent
   report: True
@@ -180,7 +181,7 @@ size400m: &size400m
   .*\.units: 1536
 
 sldp: &sldp
-  <<: *size50m
+  <<: *size12m
   task: sldp_onehot
   (enc|dec).spaces: 'observation'
   wrapper.length: 1000
@@ -293,7 +294,7 @@ multicpu:
     actor_batch: 4
   batch_size: 12
 
-debug:
+debug: &debug
   jax: {debug: True, jit: True, prealloc: False, platform: cpu, compute_dtype: bfloat16, profiler: False, checks: False}
   wrapper: {length: 100, checks: True}
   run: {num_envs: 4, eval_every: 10, log_every: 5, save_every: 15, train_ratio: 8, actor_batch: 2, driver_parallel: False}

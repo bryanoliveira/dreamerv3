@@ -100,6 +100,8 @@ def train(make_agent, make_replay, make_env, make_logger, args):
   checkpoint.load_or_save(load_skip_keys=args.load_skip_keys)
   should_save(step)  # Register that we just saved.
 
+  early_stop_counter = 0
+
   print('Start training loop')
   policy = lambda *args: agent.policy(
       *args, mode='explore' if should_expl(step) else 'train')
@@ -113,6 +115,7 @@ def train(make_agent, make_replay, make_env, make_logger, args):
       logger.add(mets, prefix='report')
 
     if should_log(step):
+      epstats_result = epstats.result()
       logger.add(agg.result())
       logger.add(epstats.result(), prefix='epstats')
       logger.add(embodied.timer.stats(), prefix='timer')
@@ -121,6 +124,17 @@ def train(make_agent, make_replay, make_env, make_logger, args):
       logger.add({'fps/policy': policy_fps.result()})
       logger.add({'fps/train': train_fps.result()})
       logger.write()
+
+      if "log_success" in epstats_result:
+        if epstats_result["log_success"] == 1:
+          early_stop_counter += 1
+        else:
+          early_stop_counter = 0
+
+        if early_stop_counter > args.early_stop_patience:
+          print("Early stopping")
+          checkpoint.save()
+          break
 
     if should_save(step):
       checkpoint.save()

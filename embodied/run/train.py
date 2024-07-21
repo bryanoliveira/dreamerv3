@@ -117,7 +117,7 @@ def train(make_agent, make_replay, make_env, make_logger, args):
     if should_log(step):
       epstats_result = epstats.result()
       logger.add(agg.result())
-      logger.add(epstats.result(), prefix='epstats')
+      logger.add(epstats_result, prefix='epstats')
       logger.add(embodied.timer.stats(), prefix='timer')
       logger.add(replay.stats(), prefix='replay')
       logger.add(usage.stats(), prefix='usage')

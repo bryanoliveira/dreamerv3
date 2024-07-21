@@ -1,6 +1,7 @@
 import importlib
 import os
 import pathlib
+import random
 import sys
 import warnings
 from functools import partial as bind
@@ -45,8 +46,13 @@ def main(argv=None):
       replay_length=config.replay_length,
       replay_length_eval=config.replay_length_eval,
       replay_context=config.replay_context)
+  
+  if not config.seed:
+    config = config.update(seed=random.randint(1, 1000000))
+
   print('Run script:', args.script)
   print('Logdir:', args.logdir)
+  print('Seed:', config.seed)
 
   logdir = embodied.Path(args.logdir)
   if not args.script.endswith(('_env', '_replay')):

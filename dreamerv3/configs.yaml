@@ -49,7 +49,7 @@ defaults:
     eval_every: 180
     eval_initial: True
     eval_eps: 1
-    early_stop_patience: 100
+    early_stop_patience: 10
     train_ratio: 32.0
     train_fill: 0
     eval_fill: 0
